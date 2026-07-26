@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+
+    stages {
+        stage("Clone CD Repo"){
+            steps{
+                sh 'git clone -b CD git@github.com:devstack-sg/Docker_CD.git'
+            }
+        }
+        stage("Change the Image Tag"){
+            steps{
+                sh "sed -i 's|image: webapp:.*|image: webapp:${image_version}|g' Docker_CD/deployment.yml"
+            }
+        }
+        stage("Verify Image alter"){
+            steps{
+                sh "grep image Docker_CD/deployment.yml"
+            }
+        }
+        stage("Commit"){
+            steps{
+                dir("Docker_CD"){
+                    sh '''
+                        git config user.name "Jenkins"
+                        git config user.email "jenkins@example.com"
+                        git add deployment.yml
+                        git commit -m "Updated image to ${image_version}" 
+                    '''
+                }
+                
+            }
+        }
+        stage("Push"){
+            steps{
+                dir('Docker_CD'){
+                    sh "git push origin CD"
+                }
+            }
+        }
+        stage("Verify Image alter after Commit"){
+            steps{
+                sh "grep image Docker_CD/deployment.yml"
+            }
+        }
+    }
+}
